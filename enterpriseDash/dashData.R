@@ -1,6 +1,7 @@
 library(scales)
 library(dplyr)
 load("./data/enterprise.Rda")
+source("helpers.R")
 
 
 f2si2<-function (number,rounding=F) # function to format large numbers
@@ -39,23 +40,20 @@ randomeyez <- function(df){
 
 # add this to munging file
 
-YTD.revenue <- t_experienceType %>% 
+FYTD.commerce <- t_experienceType %>% 
       filter(name == "Commerce",
              between(datetime, last.year[1], last.year[2]) | 
                    between(datetime, current.year[1], current.year[2])) %>%
       group_by(FY) %>%
-      summarize(Revenue = f2si2(sum(revenue), rounding=TRUE),
-                Conversion = percent(sum(orders) / sum(visits)))
+      summarize(Revenue = sum(revenue),
+                Conversion = sum(orders) / sum(visits))
       
-      
-      
-      sum(filter(t_experienceType, name=="Commerce", datetime )$revenue)
-YTD.revenue <- paste0("$", f2si2(YTD.revenue, rounding=TRUE))
-
-YTD.conversion <- sum(filter(t_experienceType, name=="Commerce")$orders)/sum(filter(t_experienceType, name=="Commerce")$visits)
-YTD.conversion <- percent(YTD.conversion)
-
-YTD.visitors <- sum(filter(t_experienceType, name=="Content")$uniquevisitors)
-YTD.visitors <- f2si2(YTD.visitors, TRUE)
-
-
+FYTD.content <- t_experienceType %>% 
+      filter(name == "Content",
+             between(datetime, last.year[1], last.year[2]) | 
+                   between(datetime, current.year[1], current.year[2])) %>%
+      group_by(FY) %>%
+      summarize(Visitors = sum(uniquevisitors),
+                Visits = sum(visits),
+                PageViews = sum(pageviews), 
+                "Page Views per Visit" = round(sum(pageviews) / sum(visits), 2))

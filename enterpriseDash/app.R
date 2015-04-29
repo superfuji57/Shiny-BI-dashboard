@@ -4,6 +4,8 @@ library(dygraphs)
 library(ggplot2)
 library(ggthemes)
 library(htmlwidgets)
+library(googleVis)
+library(ShinyDash)
 
 source("dashData.R")
 
@@ -109,11 +111,12 @@ body <- dashboardBody(
             ),
             
             tabItem("subitem1",
-                    "whhaaaat"
+                    htmlOutput("conversion_gauge")
             ),
             
             tabItem("subitem2",
-                    "Sub-item 2 tab content"
+                    "content"
+     
             )
       )
 )
@@ -121,21 +124,29 @@ body <- dashboardBody(
 
 server <- function(input, output) {
       output$conversionRate <- renderValueBox({
-            YTD.conversion <- sum(filter(t_experienceType, name=="Commerce")$orders)/sum(filter(t_experienceType, name=="Commerce")$visits)
-            YTD.conversion <- percent(YTD.conversion)
+            conversion <- percent(FYTD.commerce$Conversion[1])
             valueBox(
-                  value = YTD.conversion,
+                  value = conversion,
                   subtitle = "Conversion Rate (Commerce Sites)",
                   icon = icon("credit-card"),
                   color = "yellow"
             )
       })
       
+      output$conversion_gauge <- renderGvis({
+            YOY <- Delt(FYTD.commerce$Conversion[2], FYTD.commerce$Conversion[1])
+            df <- data.frame(Label = "YOY", Value = round(YOY, 2))
+            gvisGauge(df,
+                      options = list(min=-1, max=1, greenFrom=.15,
+                                     greenTo=1, redFrom = -1, redTo=-.15,
+                                     width=300, height=300))
+      })
+      
+      
       output$uniqueVisitors <- renderValueBox({
-            YTD.visitors <- sum(filter(t_experienceType, name=="Content")$uniquevisitors)
-            YTD.visitors <- f2si2(YTD.visitors, TRUE)
+            visitors <- f2si2(FYTD.content$Visitors[1], rounding = TRUE)
             valueBox(
-                  value = YTD.visitors,
+                  value = visitors,
                   subtitle = "Unique Visitors (content sites)",
                   icon = icon("users"),
                   color = "blue"

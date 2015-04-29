@@ -43,3 +43,5 @@ FY <- function(date){
             return("PY")
       } else return("Date not this year or last fiscal year")
 }
+
+# YOY

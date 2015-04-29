@@ -42,3 +42,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 .Rproj.user
+enterpriseDash/munger.R
+enterpriseDash/ftpDownload.R
+enterpriseDash/data/enterprise.Rda

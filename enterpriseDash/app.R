@@ -37,8 +37,8 @@ body <- dashboardBody(
                                  h2("Content"))
                     ),
                     fluidRow(
-                          valueBoxOutput("conversionRate", width=6),
-                          valueBoxOutput("uniqueVisitors", width=6)
+                          infoBoxOutput("conversionRate", width=6),
+                          infoBoxOutput("uniqueVisitors", width=6)
                     ),
                     # YoY
                     fluidRow(
@@ -111,7 +111,7 @@ body <- dashboardBody(
             ),
             
             tabItem("subitem1",
-                    htmlOutput("conversion_gauge")
+                    "Test"
             ),
             
             tabItem("subitem2",
@@ -123,31 +123,22 @@ body <- dashboardBody(
 
 
 server <- function(input, output) {
-      output$conversionRate <- renderValueBox({
+      output$conversionRate <- renderInfoBox({
             conversion <- percent(FYTD.commerce$Conversion[1])
-            valueBox(
+            infoBox("Conversion Rate",
                   value = conversion,
-                  subtitle = "Conversion Rate (Commerce Sites)",
                   icon = icon("credit-card"),
                   color = "yellow"
             )
       })
       
-      output$conversion_gauge <- renderGvis({
-            YOY <- Delt(FYTD.commerce$Conversion[2], FYTD.commerce$Conversion[1])
-            df <- data.frame(Label = "YOY", Value = round(YOY, 2))
-            gvisGauge(df,
-                      options = list(min=-1, max=1, greenFrom=.15,
-                                     greenTo=1, redFrom = -1, redTo=-.15,
-                                     width=300, height=300))
-      })
       
       
-      output$uniqueVisitors <- renderValueBox({
-            visitors <- f2si2(FYTD.content$Visitors[1], rounding = TRUE)
-            valueBox(
+      output$uniqueVisitors <- renderInfoBox({
+            visitors <- f2si2(FYTD.content$UniqueVisitors[1], rounding = TRUE)
+            infoBox("Unique Visitors",
                   value = visitors,
-                  subtitle = "Unique Visitors (content sites)",
+                  subtitle = "(content sites)",
                   icon = icon("users"),
                   color = "blue"
             )
@@ -172,27 +163,39 @@ server <- function(input, output) {
       
       # Conversion Bar Plot 
       output$conversion <- renderPlot({
-            t_commerce %>%
-                  group_by(name) %>%
-                  summarize(conv = round(sum(orders) / sum(visits), 3) ) %>%
-                  ggplot(aes(reorder(name, conv),conv)) + 
-                  geom_bar(stat="identity", fill = "lightblue", color = "black") +
-                  labs(title="Conversion Rate", x="", y="") +
+            YOY.commerce %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
+                  geom_bar(stat = "identity", position="identity") + 
+                  geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
+                                hjust = ifelse(YOY >= 0, 0, 1))) +
                   coord_flip() +
-                  theme_economist() + scale_colour_economist()
+                  ggtitle("Year Over Year Metrics") +
+                  labs(x="", y="") +
+                  ylim(-.5, .5) +
+                  scale_color_fivethirtyeight() + 
+                  theme_fivethirtyeight() + 
+                  theme(legend.position = "none",
+                        plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
+                        axis.text.y=element_text(size = 12, colour="blue", face="bold"))
+            
             
       })
       
       # Visitors  Bar Plot 
       output$visitors <- renderPlot({
-            t_content %>%
-                  group_by(name) %>%
-                  summarize(UniqueVisitors = sum(uniquevisitors) ) %>%
-                  ggplot(aes(reorder(name, UniqueVisitors),UniqueVisitors)) + 
-                  geom_bar(stat="identity", fill = "lightblue", color = "black") +
-                  labs(title="Unique Visitors", x="", y="") +
+            YOY.content %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
+                  geom_bar(stat = "identity", position="identity") + 
+                  geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
+                                hjust = ifelse(YOY >= 0, 0, 1))) +
                   coord_flip() +
-                  theme_few() + scale_colour_few()
+                  ggtitle("Year Over Year Metrics") +
+                  labs(x="", y="") +
+                  ylim(-.5, .5) +
+                  scale_color_fivethirtyeight() + 
+                  theme_fivethirtyeight() + 
+                  theme(legend.position = "none",
+                        plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
+                        axis.text.y=element_text(size = 12, colour="blue", face="bold"))
+            
       })
       
       # Predicted values for dygraph

@@ -1,3 +1,6 @@
+library(lubridate)
+library(dplyr)
+
 # extract first day of fiscal year
 beginFY <- function(date) {
       if (month(date) < 6) {
@@ -33,15 +36,28 @@ f2si2<-function (number,rounding=F)
 }
 
 # fiscal year label
-end.date <- today()
+end.date <- Sys.Date()
 current.year <- c(beginFY(end.date), end.date)
 last.year <- c(beginFY(end.date-365), current.year[1]-1)
+
 FY <- function(date){
       if (between(date, current.year[1], current.year[2])){
-            return("CY")
+            return(factor("CY"))
       } else if (between(date, last.year[1], last.year[2])) {
-            return("PY")
-      } else return("Date not this year or last fiscal year")
+            return(factor("PY"))
+      } else return(factor("Year NA"))
 }
 
 # YOY
+yoyR <- function(x){
+      (x[1] - x[2]) / x[2]
+}
+
+yoyR2 <- function(x) {
+      df <- arrange(x, desc(FY))
+      df <- df[,sapply(df, is.numeric)]
+      df <- data.frame(cbind(apply(df, 2, yoyR)))
+      names(df) <- "YOY"
+      df$Metrics <- row.names(df)
+      df
+}

@@ -46,14 +46,29 @@ FYTD.commerce <- t_experienceType %>%
                    between(datetime, current.year[1], current.year[2])) %>%
       group_by(FY) %>%
       summarize(Revenue = sum(revenue),
-                Conversion = sum(orders) / sum(visits))
-      
+                Conversion = sum(orders) / sum(visits),
+                Visits = sum(visits),
+                PageViews = sum(pageviews),
+                Orders = sum(orders),
+                UniqueVisitors = sum(uniquevisitors),
+                "Page Views per Visit" = round(sum(pageviews) / sum(visits), 2))
+
 FYTD.content <- t_experienceType %>% 
       filter(name == "Content",
              between(datetime, last.year[1], last.year[2]) | 
                    between(datetime, current.year[1], current.year[2])) %>%
       group_by(FY) %>%
-      summarize(Visitors = sum(uniquevisitors),
+      summarize(Revenue = sum(revenue),
+                Conversion = sum(orders) / sum(visits),
                 Visits = sum(visits),
-                PageViews = sum(pageviews), 
+                PageViews = sum(pageviews),
+                Orders = sum(orders),
+                UniqueVisitors = sum(uniquevisitors),
                 "Page Views per Visit" = round(sum(pageviews) / sum(visits), 2))
+
+YOY.commerce <- yoyR2(FYTD.commerce)
+YOY.content <- yoyR2(FYTD.content)
+
+YOY.commerce$color <- ifelse(YOY.commerce$YOY < 0, "yellow", "green")
+YOY.content$color <- ifelse(YOY.content$YOY < 0, "yellow", "green")
+

@@ -4,20 +4,20 @@ library(dygraphs)
 library(ggplot2)
 library(ggthemes)
 library(htmlwidgets)
-library(googleVis)
-library(ShinyDash)
+library(xts)
 
 source("dashData.R")
 
 header <- dashboardHeader(
-      title = "Enterprise Demo")
+      title = "BI and Analytics")
 
 sidebar <- dashboardSidebar(
       sidebarMenu(
             menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
             
-            menuItem("Widgets", icon = icon("th"), tabName = "widgets", badgeLabel = "new",
-                     badgeColor = "green"),
+            menuItem("Trended Metrics", icon = icon("th"), tabName = "trends", 
+                     menuSubItem("Commerce", tabName = "comTab"),
+                     menuSubItem("Content", tabName = "conTab")),
             
             menuItem("Charts", icon = icon("bar-chart-o"),
                      menuSubItem("Sub-item 1", tabName = "subitem1"),
@@ -41,82 +41,71 @@ body <- dashboardBody(
                           infoBoxOutput("uniqueVisitors", width=6)
                     ),
                     # YoY
-                    fluidRow(
-                          column(width=6,
-                                 p("+ 10% YOY")),
-                          column(width=6,
-                                 p("+ 5% YOY"))
-                    ),
+                    
                     
                     fluidRow(
                           column(width=6,
-                                 plotOutput("conversion"),
+                                 
                                  box(
-                                       status = "warning", width = NULL,
-                                       "YoY performance"
+                                       title = "YOY Metrics Performance", width = NULL, solidHeader = TRUE, status = "danger",
+                                       plotOutput("conversion")
                                  ),
                                  box(
-                                       title = "Performance to Forecast", width = NULL, solidHeader = TRUE, status = "warning",
-                                       "Box content"
-                                 ),
-                                 box(
+                                       title = "More to come", width = NULL, background = "light-blue",
+                                       "We can put text or anything else here."
                                  ) 
                           ),
                           
                           column(6,
                                  
-                                 plotOutput("visitors"),
-                                 
                                  box(
-                                       status = "warning", width = NULL,
-                                       "YoY performanc"
-                                 ),
-                                 box(
-                                       title = "Performance to Forecast", width = NULL, solidHeader = TRUE, status = "warning",
-                                       "Box content"
-                                 ),
-                                 box(
-                                       title = "Title 5", width = NULL, background = "light-blue",
-                                       "A box with a solid light-blue background"
+                                       title = "YOY Metrics Performance", width = NULL, solidHeader = TRUE, status = "danger",
+                                       plotOutput("visitors")
                                  ) 
                           )
                           
                     )
             ),
             
-            tabItem("widgets",
+            tabItem("comTab",
                     fluidRow(
-                          box(status = "primary", width = 8, dygraphOutput("dygraph", height = 250)),
-                          
-                          box(title = "Controls for dygraph", background = "teal",
-                              sliderInput("months", label = "Months to Predict",
-                                          value = 72, min = 12, max = 144, step = 12, ticks = FALSE),
-                              selectInput("interval", label = "Prediction Interval",
-                                          choices = c("0.80", "0.90", "0.95", "0.99"),
-                                          selected = "0.95", selectize = TRUE),
-                              checkboxInput("showgrid", label = "Show Grid", value = TRUE)
+                          box(title = "Select Commerce Business Unit", background = "red",
+                              selectInput("CommerceBU", "Business Unit",
+                                          choices = unique(t_commerce$name),
+                                          selected = "SSO")
+                          ),
+                          box(title = "Select Date Granularity", background = "blue",
+                              selectInput("dateGran", "Date Granularity",
+                                          choices = c("Day", "Week", "Month"),
+                                          selected = "Week")
+                              
                           )
                     ),
-                    
-                    fluidRow(
-                          # Box with textOutput
-                          box(title = "Status summary", background = "red", textOutput("status")),
-                          # Box with HTML output, when finer control over appearance is needed
-                          box(
-                                title = "Status summary 2",
-                                uiOutput("status2"),
-                                background = "blue"
-                          )
+                    column(12,
+                           fluidRow(
+                                 column(6,
+                                        box(status = "primary", width = 12, dygraphOutput("comVisits", height = 250)),
+                                        box(status = "primary", width = 12, dygraphOutput("comPageviews", height = 250))
+                                        
+                                 ),
+                                 column(6,
+                                        box(status = "primary", width = 12, dygraphOutput("comOrders", height = 250)),
+                                        box(status = "primary", width = 12, dygraphOutput("comRevenue", height = 250))
+                                        
+                                 )
+                           )
                     )
             ),
-            
+            tabItem("conTab",
+                    "TBD"
+            ),
             tabItem("subitem1",
                     "Test"
             ),
             
             tabItem("subitem2",
                     "content"
-     
+                    
             )
       )
 )
@@ -126,9 +115,10 @@ server <- function(input, output) {
       output$conversionRate <- renderInfoBox({
             conversion <- percent(FYTD.commerce$Conversion[1])
             infoBox("Conversion Rate",
-                  value = conversion,
-                  icon = icon("credit-card"),
-                  color = "yellow"
+                    value = conversion,
+                    subtitle = "(Commerce sites, FYTD)",
+                    icon = icon("credit-card"),
+                    color = "yellow"
             )
       })
       
@@ -137,10 +127,10 @@ server <- function(input, output) {
       output$uniqueVisitors <- renderInfoBox({
             visitors <- f2si2(FYTD.content$UniqueVisitors[1], rounding = TRUE)
             infoBox("Unique Visitors",
-                  value = visitors,
-                  subtitle = "(content sites)",
-                  icon = icon("users"),
-                  color = "blue"
+                    value = visitors,
+                    subtitle = "(Content sites, FYTD)",
+                    icon = icon("users"),
+                    color = "blue"
             )
       })
       
@@ -163,19 +153,18 @@ server <- function(input, output) {
       
       # Conversion Bar Plot 
       output$conversion <- renderPlot({
-            YOY.commerce %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
+            YOY.commerce %>% ggplot(aes(Metrics, YOY, label=Metrics, fill=color)) +
                   geom_bar(stat = "identity", position="identity") + 
                   geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
                                 hjust = ifelse(YOY >= 0, 0, 1))) +
                   coord_flip() +
-                  ggtitle("Year Over Year Metrics") +
                   labs(x="", y="") +
                   ylim(-.5, .5) +
                   scale_color_fivethirtyeight() + 
                   theme_fivethirtyeight() + 
                   theme(legend.position = "none",
                         plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
-                        axis.text.y=element_text(size = 12, colour="blue", face="bold"))
+                        axis.text.y=element_text(size = 12, colour="darkblue"))
             
             
       })
@@ -187,14 +176,13 @@ server <- function(input, output) {
                   geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
                                 hjust = ifelse(YOY >= 0, 0, 1))) +
                   coord_flip() +
-                  ggtitle("Year Over Year Metrics") +
                   labs(x="", y="") +
                   ylim(-.5, .5) +
                   scale_color_fivethirtyeight() + 
                   theme_fivethirtyeight() + 
                   theme(legend.position = "none",
                         plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
-                        axis.text.y=element_text(size = 12, colour="blue", face="bold"))
+                        axis.text.y=element_text(size = 12, colour="darkblue"))
             
       })
       
@@ -206,10 +194,45 @@ server <- function(input, output) {
                     level = as.numeric(input$interval))
       })
       
-      output$dygraph <- renderDygraph({
-            dygraph(predicted(), main = "Predicted Orders Volume/Month") %>%
-                  dySeries(c("lwr", "fit", "upr"), label = "Orders") %>%
-                  dyOptions(drawGrid = input$showgrid)
+      commerceData <- reactive({
+            businessUnit <- input$CommerceBU
+            t_commerce %>% filter(name == businessUnit)            
+      })
+      
+      tsGran <- function(ts, gran="Week") {
+            if (gran == "Week") {
+                  return(apply.weekly(ts, sum))
+            } else if (gran == "Day") {
+                  return(ts) 
+            } else if (gran == "Month") {
+                  return(apply.monthly(ts, sum))
+            }
+      }
+      
+      
+      output$comVisits <- renderDygraph({
+            ts <- xts(commerceData()$visits, order.by=commerceData()$datetime)
+            ts <- tsGran(ts, input$dateGran)
+            dygraph(ts, main = "Visits") 
+      })
+      
+      
+      output$comPageviews <- renderDygraph({
+            ts <- xts(commerceData()$pageviews, order.by=commerceData()$datetime)
+            ts <- tsGran(ts, input$dateGran)
+            dygraph(ts, main = "Page Views") 
+      })
+      
+      output$comOrders <- renderDygraph({
+            ts <- xts(commerceData()$orders, order.by=commerceData()$datetime)
+            ts <- tsGran(ts, input$dateGran)
+            dygraph(ts, main = "Orders") 
+      })
+      
+      output$comRevenue <- renderDygraph({
+            ts <- xts(commerceData()$revenue, order.by=commerceData()$datetime)
+            ts <- tsGran(ts, input$dateGran)
+            dygraph(ts, main = "Revenue") 
       })
       
       # Status text
@@ -238,6 +261,6 @@ server <- function(input, output) {
 
 
 shinyApp(
-      ui = dashboardPage(header, sidebar, body),
+      ui = dashboardPage(header, sidebar, body, skin="red"),
       server = server
 )

@@ -71,5 +71,5 @@ FYTD.content <- t_experienceType %>%
 YOY.commerce <- yoyR2(FYTD.commerce)
 YOY.content <- yoyR2(FYTD.content)
 
-YOY.commerce$color <- ifelse(YOY.commerce$YOY < 0, "yellow", "green")
-YOY.content$color <- ifelse(YOY.content$YOY < 0, "yellow", "green")
+YOY.commerce$color <- ifelse(YOY.commerce$YOY < 0, "red", "green")
+YOY.content$color <- ifelse(YOY.content$YOY < 0, "red", "green")

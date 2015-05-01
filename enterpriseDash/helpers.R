@@ -42,9 +42,9 @@ last.year <- c(beginFY(end.date-365), current.year[1]-1)
 
 FY <- function(date){
       if (between(date, current.year[1], current.year[2])){
-            return(factor("CY"))
+            return(factor(paste0("FY", as.character(year(current.year[1])+1))))
       } else if (between(date, last.year[1], last.year[2])) {
-            return(factor("PY"))
+            return(factor(paste0("FY", as.character(year(last.year[1])+1))))
       } else return(factor("Year NA"))
 }
 
@@ -60,4 +60,14 @@ yoyR2 <- function(x) {
       names(df) <- "YOY"
       df$Metrics <- row.names(df)
       df
+}
+
+# Pretty table output
+prettyR <- function(df){
+      perMetrics <- c("Conversion", "Engagement")
+      totMetrics <- c("Visits", "Revenue", "PageViews", "Orders", "UniqueVisitors")
+      decMetrics <- c("Page Views per Visit", "Avg Time Spent")
+      df[, names(df) %in% perMetrics] <- apply(df[, names(df) %in% perMetrics],1, percent)      
+      df[, names(df) %in% totMetrics] <- apply(df[, names(df) %in% totMetrics],1, function(x) f2si2(x, rounding=1))            
+      df            
 }

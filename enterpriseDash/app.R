@@ -5,8 +5,10 @@ library(ggplot2)
 library(ggthemes)
 library(htmlwidgets)
 library(xts)
-
-source("dashData.R")
+library(shinyBS)
+source("helpers.R")
+load("./data/enterprise.Rda")
+#source("dashData.R")
 
 header <- dashboardHeader(
       title = "BI and Analytics")
@@ -27,24 +29,22 @@ sidebar <- dashboardSidebar(
 )
 
 body <- dashboardBody(
-      
+            
       tabItems(
             tabItem("dashboard",
                     fluidRow(
                           column(width=6,
-                                 h1("Commerce")),
+                                 h1("Commerce"),
+                                 infoBoxOutput("conversionRate", width=12)),
                           column(width=6,
-                                 h1("Content"))
-                    ),
-                    fluidRow(
-                          infoBoxOutput("conversionRate", width=6),
-                          infoBoxOutput("uniqueVisitors", width=6)
+                                 h1("Content"),
+                                 infoBoxOutput("uniqueVisitors", width=12))
                     ),
                     # YoY
                     
                     
                     fluidRow(
-                          column(width=6,
+                          column(6,
                                  
                                  box(
                                        title = "Commerce YOY Metrics Performance", width = NULL, solidHeader = TRUE, status = "danger",
@@ -61,16 +61,17 @@ body <- dashboardBody(
                           )
                           
                     ),
-                    fluidRow(
-                    box(
-                          title = "Raw Totals", textOutput("daterange"), width = 12, solidHeader=TRUE, status="warning",
-                          h3("Commerce Site Totals"),
-                          tableOutput("fytdCommerce"),
-                          h3("Content Site Totals"),
-                          tableOutput("fytdContent")
+                    fluidRow( 
+                          box(
+                                title = textOutput("daterange"), width = 12, solidHeader=TRUE, status="warning",
+                                h4("Commerce Site Totals"),
+                                tableOutput("fytdCommerce"),
+                                h4("Content Site Totals"),
+                                tableOutput("fytdContent")                                    )
+                    )
+                                
+                                  
                           
-                    )
-                    )
             ),
             
             tabItem("comTab",
@@ -144,7 +145,9 @@ body <- dashboardBody(
 )
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+      reactiveFileReader(3500000, session, "./data/enterprise.Rda", load)
+      
       output$daterange <- renderText({
             from <- t_commerce$datetime[1]
             to <- t_commerce$datetime[length(t_commerce$datetime)]
@@ -166,10 +169,10 @@ server <- function(input, output) {
       
       
       output$uniqueVisitors <- renderInfoBox({
-            visitors <- f2si2(FYTD.content$UniqueVisitors[1], rounding = TRUE)
-            infoBox("Unique Visitors",
+            visitors <- f2si2(FYTD.content$Engagment[1], rounding = TRUE)
+            infoBox("Engagement (WAU/MAU)",
                     value = visitors,
-                    subtitle = "(Content sites, FYTD)",
+                    subtitle = "(Content sites, FYTD) \n Percentage of Monthly Users Active this Week",
                     icon = icon("users"),
                     color = "blue"
             )
@@ -234,13 +237,6 @@ server <- function(input, output) {
       output$fytdContent <- renderTable(FYTD.content)
       
       #### NEXT TAB
-      # Predicted values for dygraph
-      predicted <- reactive({
-            hw <- HoltWinters(ldeaths)
-            predict(hw, n.ahead = input$months,
-                    prediction.interval = TRUE,
-                    level = as.numeric(input$interval))
-      })
       
       commerceData <- reactive({
             businessUnit <- input$CommerceBU
@@ -266,52 +262,60 @@ server <- function(input, output) {
       output$comVisits <- renderDygraph({
             ts <- xts(commerceData()$visits, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Visits") 
+            dygraph(ts, main = "Visits") %>%
+                  dySeries("V1", label = "Visits")
       })
       
       
       output$comPageviews <- renderDygraph({
             ts <- xts(commerceData()$pageviews, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Page Views") 
+            dygraph(ts, main = "Page Views") %>%
+                  dySeries("V1", label = "Page Views")
       })
       
       output$comOrders <- renderDygraph({
             ts <- xts(commerceData()$orders, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Orders") 
+            dygraph(ts, main = "Orders") %>%
+                  dySeries("V1", label = "Orders")
       })
       
       output$comRevenue <- renderDygraph({
             ts <- xts(commerceData()$revenue, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Revenue") 
+            dygraph(ts, main = "Revenue") %>%
+                  dySeries("V1", label = "Revenue")
       })
       
       ## Content dygraphs
       output$conVisits <- renderDygraph({
             ts <- xts(contentData()$visits, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Visits") 
+            dygraph(ts, main = "Visits") %>%
+                  dySeries("V1", label = "Visits")
       })
       
       
       output$conPageviews <- renderDygraph({
             ts <- xts(contentData()$pageviews, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Page Views") 
+            dygraph(ts, main = "Page Views") %>%
+                  dySeries("V1", label = "Page Views")
       })
       
       output$conOrders <- renderDygraph({
             ts <- xts(contentData()$orders, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Orders") 
+            dygraph(ts, main = "Orders") %>%
+                  dySeries("V1", label = "Orders")
       })
       
       output$conRevenue <- renderDygraph({
             ts <- xts(contentData()$revenue, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Revenue") 
+            dygraph(ts, main = "Revenue") %>%
+                  dySeries("V1", label = "Revenue")
       })
       
       # Status text

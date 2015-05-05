@@ -5,10 +5,11 @@ library(ggplot2)
 library(ggthemes)
 library(htmlwidgets)
 library(xts)
-library(shinyBS)
+library(scales)
+
 source("helpers.R")
+# source("dashData.R")
 load("./data/enterprise.Rda")
-#source("dashData.R")
 
 header <- dashboardHeader(
       title = "BI and Analytics")
@@ -29,22 +30,24 @@ sidebar <- dashboardSidebar(
 )
 
 body <- dashboardBody(
-            
+      
       tabItems(
             tabItem("dashboard",
                     fluidRow(
                           column(width=6,
-                                 h1("Commerce"),
-                                 infoBoxOutput("conversionRate", width=12)),
+                                 h1("Commerce")),
                           column(width=6,
-                                 h1("Content"),
-                                 infoBoxOutput("uniqueVisitors", width=12))
+                                 h1("Content"))
+                    ),
+                    fluidRow(
+                          infoBoxOutput("conversionRate", width=6),
+                          infoBoxOutput("engagement", width=6)
                     ),
                     # YoY
                     
                     
                     fluidRow(
-                          column(6,
+                          column(width=6,
                                  
                                  box(
                                        title = "Commerce YOY Metrics Performance", width = NULL, solidHeader = TRUE, status = "danger",
@@ -61,17 +64,16 @@ body <- dashboardBody(
                           )
                           
                     ),
-                    fluidRow( 
+                    fluidRow(
                           box(
                                 title = textOutput("daterange"), width = 12, solidHeader=TRUE, status="warning",
                                 h4("Commerce Site Totals"),
-                                tableOutput("fytdCommerce"),
+                                dataTableOutput("fytdCommerce"),
                                 h4("Content Site Totals"),
-                                tableOutput("fytdContent")                                    )
-                    )
+                                dataTableOutput("fytdContent")
                                 
-                                  
-                          
+                          )
+                    )
             ),
             
             tabItem("comTab",
@@ -146,7 +148,7 @@ body <- dashboardBody(
 
 
 server <- function(input, output, session) {
-      reactiveFileReader(3500000, session, "./data/enterprise.Rda", load)
+      reactiveFileReader(300000, session, "./data/enterprise.Rda", load)
       
       output$daterange <- renderText({
             from <- t_commerce$datetime[1]
@@ -160,7 +162,7 @@ server <- function(input, output, session) {
             conversion <- percent(FYTD.commerce$Conversion[1])
             infoBox("Conversion Rate",
                     value = conversion,
-                    subtitle = "(Commerce sites, FYTD)",
+                    subtitle = "Orders over visits (Commerce sites, FYTD)",
                     icon = icon("credit-card"),
                     color = "yellow"
             )
@@ -168,11 +170,11 @@ server <- function(input, output, session) {
       
       
       
-      output$uniqueVisitors <- renderInfoBox({
-            visitors <- f2si2(FYTD.content$Engagment[1], rounding = TRUE)
-            infoBox("Engagement (WAU/MAU)",
-                    value = visitors,
-                    subtitle = "(Content sites, FYTD) \n Percentage of Monthly Users Active this Week",
+      output$engagement <- renderInfoBox({
+            engagement <- percent(FYTD.content$Engagement[1])
+            infoBox("Engagement",
+                    value = engagement,
+                    subtitle = "Rate of monthly users active in the last week (Content sites, FYTD)",
                     icon = icon("users"),
                     color = "blue"
             )
@@ -232,11 +234,20 @@ server <- function(input, output, session) {
             
       })
       
-      output$fytdCommerce <- renderTable(FYTD.commerce)
-
-      output$fytdContent <- renderTable(FYTD.content)
+      ### Raw data tables on first tab
+      output$fytdCommerce <- renderDataTable(prettyR(FYTD.commerce),
+                                             options = list(
+                                                   autoWidth=TRUE, paging=FALSE,
+                                                   searching = FALSE
+                                             ))
       
-      #### NEXT TAB
+      output$fytdContent <- renderDataTable(prettyR(FYTD.content),
+                                            options = list(
+                                                  autoWidth=TRUE, paging=FALSE,
+                                                  searching = FALSE
+                                            ))
+      #### NEXT TAB, trended engagement
+      #### dygraphs
       
       commerceData <- reactive({
             businessUnit <- input$CommerceBU

@@ -35,13 +35,11 @@ body <- dashboardBody(
             tabItem("dashboard",
                     fluidRow(
                           column(width=6,
-                                 h1("Commerce")),
+                                 h1("Commerce"),
+                                 infoBoxOutput("conversionRate", width=12)),
                           column(width=6,
-                                 h1("Content"))
-                    ),
-                    fluidRow(
-                          infoBoxOutput("conversionRate", width=6),
-                          infoBoxOutput("engagement", width=6)
+                                 h1("Content"),
+                                 infoBoxOutput("engagement", width=12))
                     ),
                     # YoY
                     
@@ -136,7 +134,7 @@ body <- dashboardBody(
                     )
             ),
             tabItem("subitem1",
-                    "Test"
+                    "stuff can go here"
             ),
             
             tabItem("subitem2",
@@ -146,9 +144,11 @@ body <- dashboardBody(
       )
 )
 
+############### SERVER ###############
+######################################
 
 server <- function(input, output, session) {
-      reactiveFileReader(300000, session, "./data/enterprise.Rda", load)
+      reactiveFileReader(100, session, "./data/enterprise.Rda", load)
       
       output$daterange <- renderText({
             from <- t_commerce$datetime[1]
@@ -174,7 +174,7 @@ server <- function(input, output, session) {
             engagement <- percent(FYTD.content$Engagement[1])
             infoBox("Engagement",
                     value = engagement,
-                    subtitle = "Rate of monthly users active in the last week (Content sites, FYTD)",
+                    subtitle = "Rate of monthly users active in the last week (Content sites)",
                     icon = icon("users"),
                     color = "blue"
             )
@@ -234,17 +234,19 @@ server <- function(input, output, session) {
             
       })
       
-      ### Raw data tables on first tab
+      ## Raw data tables on first tab
       output$fytdCommerce <- renderDataTable(prettyR(FYTD.commerce),
                                              options = list(
                                                    autoWidth=TRUE, paging=FALSE,
-                                                   searching = FALSE
+                                                   searching = FALSE,
+                                                   info = FALSE
                                              ))
       
       output$fytdContent <- renderDataTable(prettyR(FYTD.content),
                                             options = list(
                                                   autoWidth=TRUE, paging=FALSE,
-                                                  searching = FALSE
+                                                  searching = FALSE,
+                                                  info = FALSE
                                             ))
       #### NEXT TAB, trended engagement
       #### dygraphs
@@ -269,7 +271,7 @@ server <- function(input, output, session) {
             }
       }
       
-      ## Commerce dygraphs
+      #### Commerce dygraphs
       output$comVisits <- renderDygraph({
             ts <- xts(commerceData()$visits, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
@@ -299,7 +301,7 @@ server <- function(input, output, session) {
                   dySeries("V1", label = "Revenue")
       })
       
-      ## Content dygraphs
+      #### Content dygraphs
       output$conVisits <- renderDygraph({
             ts <- xts(contentData()$visits, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)

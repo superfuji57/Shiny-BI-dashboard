@@ -36,9 +36,15 @@ body <- dashboardBody(
                     fluidRow(
                           column(width=6,
                                  h1("Commerce"),
+                                 selectInput("commerceSite", "Business Unit",
+                                             choices = c("Overall Commerce" = "Commerce", unique(t_commerce$name)),
+                                             selected = "Commerce"),
                                  infoBoxOutput("conversionRate", width=12)),
                           column(width=6,
                                  h1("Content"),
+                                 selectInput("contentSite", "Business Unit",
+                                             choices = c("Overall Content" = "Content", unique(t_content$name)),
+                                             selected = "Content"),
                                  infoBoxOutput("engagement", width=12))
                     ),
                     # YoY
@@ -148,7 +154,23 @@ body <- dashboardBody(
 ######################################
 
 server <- function(input, output, session) {
-      reactiveFileReader(100, session, "./data/enterprise.Rda", load)
+      reactiveFileReader(10000, session, "./data/enterprise.Rda", load)
+      
+      commerceDash <- reactive({
+            if (input$commerceSite == "Commerce") {
+                  FYTD(t_experienceType, "Commerce")
+            } else {
+                  FYTD(t_commerce, input$commerceSite)
+            }
+      })
+      
+      contentDash <- reactive({
+            if (input$contentSite == "Content") {
+                  FYTD(t_experienceType, input$contentSite)
+            } else {
+                  FYTD(t_content, input$contentSite)
+            }
+      })
       
       output$daterange <- renderText({
             from <- t_commerce$datetime[1]
@@ -159,7 +181,7 @@ server <- function(input, output, session) {
       })
       
       output$conversionRate <- renderInfoBox({
-            conversion <- percent(FYTD.commerce$Conversion[1])
+            conversion <- percent(commerceDash()$Conversion[1])
             infoBox("Conversion Rate",
                     value = conversion,
                     subtitle = "Orders over visits (Commerce sites, FYTD)",
@@ -171,7 +193,7 @@ server <- function(input, output, session) {
       
       
       output$engagement <- renderInfoBox({
-            engagement <- percent(FYTD.content$Engagement[1])
+            engagement <- percent(contentDash()$Engagement[1])
             infoBox("Engagement",
                     value = engagement,
                     subtitle = "Rate of monthly users active in the last week (Content sites)",
@@ -199,13 +221,13 @@ server <- function(input, output, session) {
       
       # Conversion Bar Plot 
       output$conversion <- renderPlot({
-            YOY.commerce %>% ggplot(aes(Metrics, YOY, label=Metrics, fill= color)) +
+            yoyR2(commerceDash()) %>% ggplot(aes(Metrics, YOY, label=Metrics, fill= color)) +
                   geom_bar(stat = "identity", position="identity") + 
                   geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
                                 hjust = ifelse(YOY >= 0, 0, 1))) +
                   coord_flip() +
                   labs(x="", y="") +
-                  ylim(-.5, .5) +
+                  ylim(min(yoyR2(commerceDash())$YOY-.1), max(yoyR2(commerceDash())$YOY)+.1) +
                   scale_color_fivethirtyeight() + 
                   theme_fivethirtyeight() + 
                   scale_fill_manual(values = c("green" = "chartreuse3", "red" = "firebrick")) +
@@ -218,13 +240,13 @@ server <- function(input, output, session) {
       
       # Visitors  Bar Plot 
       output$visitors <- renderPlot({
-            YOY.content %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
+            yoyR2(contentDash()) %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
                   geom_bar(stat = "identity", position="identity") + 
                   geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
                                 hjust = ifelse(YOY >= 0, 0, 1))) +
                   coord_flip() +
                   labs(x="", y="") +
-                  ylim(-.5, .5) +
+                  ylim(min(yoyR2(contentDash())$YOY)-.1, max(yoyR2(contentDash())$YOY)+.1) +
                   scale_color_fivethirtyeight() + 
                   theme_fivethirtyeight() + 
                   scale_fill_manual(values = c("green" = "chartreuse3", "red" = "firebrick")) +

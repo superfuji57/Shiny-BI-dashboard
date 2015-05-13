@@ -59,15 +59,55 @@ yoyR2 <- function(x) {
       df <- data.frame(cbind(apply(df, 2, yoyR)))
       names(df) <- "YOY"
       df$Metrics <- row.names(df)
+      df$color <- ifelse(df$YOY < 0, "red", "green")
       df
 }
 
 # Pretty table output
 prettyR <- function(df){
-      perMetrics <- c("Conversion", "Engagement")
+      perMetrics <- c("Conversion", "Engagement", "Engagement WUV/MUV")
       totMetrics <- c("Visits", "Revenue", "PageViews", "Orders", "UniqueVisitors")
       decMetrics <- c("Page Views per Visit", "Avg Time Spent")
       df[, names(df) %in% perMetrics] <- apply(df[, names(df) %in% perMetrics],1, percent)      
       df[, names(df) %in% totMetrics] <- apply(df[, names(df) %in% totMetrics],1, function(x) f2si2(x, rounding=1))            
       df            
+}
+
+# FYTD dataframe
+FYTD <- function(df, experience, ...){
+      end.date <- today() - 1
+      current.year <- c(beginFY(end.date), end.date)
+      last.year <- c(beginFY(end.date-365), end.date-365)
+      content.sites <- c("Content", "TeacherContent", "Parents", "Kids")
+      commerce.sites <- c("Commerce", "TSO CQS", "SSO", "BookFairsExperience", "Classroom Magazines",
+                          "Printables MiniBooks", "Teacher Express", "BookClubsExperience")
+      if (experience %in% commerce.sites) {
+            df %>% filter(name == experience,
+                          between(datetime, last.year[1], last.year[2]) | 
+                                between(datetime, current.year[1], current.year[2])) %>%
+                  group_by(FY) %>%
+                  summarize(Revenue = sum(revenue),
+                            Conversion = sum(orders) / sum(visits),
+                            Visits = sum(visits),
+                            PageViews = sum(pageviews),
+                            Orders = sum(orders),
+                            #UniqueVisitors = sum(uniquevisitors),
+                            "Page Views per Visit" = round(sum(pageviews) / sum(visits), 1)) %>%
+                  arrange(desc(FY))            
+      } else if (experience %in% content.sites) {
+            df %>% filter(name == experience,
+                   between(datetime, last.year[1], last.year[2]) | 
+                         between(datetime, current.year[1], current.year[2])) %>%
+                  group_by(FY) %>%
+                  summarize(#Revenue = sum(revenue),
+                        #Conversion = sum(orders) / sum(visits),
+                        Visits = sum(visits),
+                        PageViews = sum(pageviews),
+                        #Orders = sum(orders),
+                        #UniqueVisitors = sum(uniquevisitors),
+                        "Page Views per Visit" = round(sum(pageviews) / sum(visits), 1),
+                        TimeSpent = round(sum(totaltimespent/60) / sum(visits), 1),
+                        "Engagement WUV/MUV" = round(sum(tail(visitorsweekly,7)) / sum(tail(visitorsmonthly,30)), 3) ) %>%
+                  arrange(desc(FY))
+      } else return(warning("Invalid experience type"))
 }

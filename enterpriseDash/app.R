@@ -132,8 +132,8 @@ body <- dashboardBody(
                                         
                                  ),
                                  column(6,
-                                        box(status = "primary", width = 12, dygraphOutput("conOrders", height = 250)),
-                                        box(status = "primary", width = 12, dygraphOutput("conRevenue", height = 250))
+                                        box(status = "primary", width = 12, dygraphOutput("conTime", height = 250)),
+                                        box(status = "primary", width = 12, dygraphOutput("conPVV", height = 250))
                                         
                                  )
                            )
@@ -158,17 +158,17 @@ server <- function(input, output, session) {
       
       commerceDash <- reactive({
             if (input$commerceSite == "Commerce") {
-                  FYTD(t_experienceType, "Commerce")
+                  FYTD(t_experienceType, "Commerce", end.date=today()-1)
             } else {
-                  FYTD(t_commerce, input$commerceSite)
+                  FYTD(t_commerce, input$commerceSite, end.date=today()-1)
             }
       })
       
       contentDash <- reactive({
             if (input$contentSite == "Content") {
-                  FYTD(t_experienceType, input$contentSite)
+                  FYTD(t_experienceType, input$contentSite, end.date=today()-1)
             } else {
-                  FYTD(t_content, input$contentSite)
+                  FYTD(t_content, input$contentSite, end.date=today()-1)
             }
       })
       
@@ -257,14 +257,14 @@ server <- function(input, output, session) {
       })
       
       ## Raw data tables on first tab
-      output$fytdCommerce <- renderDataTable(prettyR(FYTD.commerce),
+      output$fytdCommerce <- renderDataTable(prettyR(commerceDash()),
                                              options = list(
                                                    autoWidth=TRUE, paging=FALSE,
                                                    searching = FALSE,
                                                    info = FALSE
                                              ))
       
-      output$fytdContent <- renderDataTable(prettyR(FYTD.content),
+      output$fytdContent <- renderDataTable(prettyR(contentDash()),
                                             options = list(
                                                   autoWidth=TRUE, paging=FALSE,
                                                   searching = FALSE,
@@ -339,18 +339,18 @@ server <- function(input, output, session) {
                   dySeries("V1", label = "Page Views")
       })
       
-      output$conOrders <- renderDygraph({
-            ts <- xts(contentData()$orders, order.by=contentData()$datetime)
+      output$conTime <- renderDygraph({
+            ts <- xts(contentData()$totaltimespent/60, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Orders") %>%
-                  dySeries("V1", label = "Orders")
+            dygraph(ts, main = "Total Time Spent") %>%
+                  dySeries("V1", label = "Minutes")
       })
       
-      output$conRevenue <- renderDygraph({
-            ts <- xts(contentData()$revenue, order.by=contentData()$datetime)
+      output$conPVV <- renderDygraph({
+            ts <- xts(contentData()$pageviews / contentData()$visits, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Revenue") %>%
-                  dySeries("V1", label = "Revenue")
+            dygraph(ts, main = "Page Views per Visit") %>%
+                  dySeries("V1", label = "PVs/Visit")
       })
       
       # Status text
@@ -376,7 +376,6 @@ server <- function(input, output, session) {
             )
       })
 }
-
 
 shinyApp(
       ui = dashboardPage(header, sidebar, body, skin="red"),

@@ -13,7 +13,7 @@ beginFY <- function(date) {
 }
 
 # function to format large numbers
-f2si2<-function (number,rounding=F) 
+f2si2<-function (number,rounding=F, digits=0) 
 {
       lut <- c(1e-24, 1e-21, 1e-18, 1e-15, 1e-12, 1e-09, 1e-06, 
                0.001, 1, 1000, 1e+06, 1e+09, 1e+12, 1e+15, 1e+18, 1e+21, 
@@ -23,7 +23,7 @@ f2si2<-function (number,rounding=F)
       ix <- findInterval(number, lut)
       if (lut[ix]!=1) {
             if (rounding==T) {
-                  sistring <- paste(round(number/lut[ix]), pre[ix])
+                  sistring <- paste(round(number/lut[ix], digits), pre[ix])
             }
             else {
                   sistring <- paste(number/lut[ix], pre[ix])
@@ -69,13 +69,12 @@ prettyR <- function(df){
       totMetrics <- c("Visits", "Revenue", "PageViews", "Orders", "UniqueVisitors")
       decMetrics <- c("Page Views per Visit", "Avg Time Spent")
       df[, names(df) %in% perMetrics] <- apply(df[, names(df) %in% perMetrics],1, percent)      
-      df[, names(df) %in% totMetrics] <- apply(df[, names(df) %in% totMetrics],1, function(x) f2si2(x, rounding=1))            
+      df[, names(df) %in% totMetrics] <- sapply(df[, names(df) %in% totMetrics], function(x) f2si2(x, rounding=TRUE, digits=1))            
       df            
 }
 
 # FYTD dataframe
-FYTD <- function(df, experience, ...){
-      end.date <- today() - 1
+FYTD <- function(df, experience, end.date = today()-1, ...){
       current.year <- c(beginFY(end.date), end.date)
       last.year <- c(beginFY(end.date-365), end.date-365)
       content.sites <- c("Content", "TeacherContent", "Parents", "Kids")
@@ -96,8 +95,8 @@ FYTD <- function(df, experience, ...){
                   arrange(desc(FY))            
       } else if (experience %in% content.sites) {
             df %>% filter(name == experience,
-                   between(datetime, last.year[1], last.year[2]) | 
-                         between(datetime, current.year[1], current.year[2])) %>%
+                          between(datetime, last.year[1], last.year[2]) | 
+                                between(datetime, current.year[1], current.year[2])) %>%
                   group_by(FY) %>%
                   summarize(#Revenue = sum(revenue),
                         #Conversion = sum(orders) / sum(visits),

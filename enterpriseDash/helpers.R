@@ -110,3 +110,23 @@ FYTD <- function(df, experience, end.date = today()-1, ...){
                   arrange(desc(FY))
       } else return(warning("Invalid experience type"))
 }
+
+## Filter with custom date range input
+getDates <- function(inputDate){
+      if (length(inputDate) == 2) {
+            dateRange <- inputDate
+      } else if (inputDate == "FYTD") {
+            dateRange <- c(beginFY(today()-1), today()-1)
+      } else if (as.numeric(inputDate) > 0 & !is.na(as.numeric(inputDate))) {
+            dateRange <- c(today()- 1 - as.numeric(inputDate), today()-1)
+      }
+      as.Date(dateRange)
+}
+
+dateFilter <- function(df, inputDate){
+      cy <- inputDate
+      py <- c(cy[1]-365, cy[2]-365)
+      df <- dplyr::filter(df, between(datetime, cy[1], cy[2]) |
+                                between(datetime, py[1], py[2]))
+      df
+}

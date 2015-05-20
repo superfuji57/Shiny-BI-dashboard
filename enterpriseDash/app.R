@@ -15,8 +15,10 @@ header <- dashboardHeader(
       title = "BI and Analytics")
 
 sidebar <- dashboardSidebar(
+      
       sidebarMenu(
-            menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+                  menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")
+                     ),
             
             menuItem("Trended Metrics", icon = icon("th"), tabName = "trends", 
                      menuSubItem("Commerce", tabName = "comTab"),
@@ -26,34 +28,29 @@ sidebar <- dashboardSidebar(
                      menuSubItem("Sub-item 1", tabName = "subitem1"),
                      menuSubItem("Sub-item 2", tabName = "subitem2")
             )
-      )
+      ),
+      selectInput("dateRange", label = h5("Date Range"),
+                  choices = c("Fiscal Year-to-Date" = "FYTD", 
+                              "Last 7 days" = 7,
+                              "Last 30 Days" = 30,
+                              "Last 6 months" = 180,
+                              "Custom Date Range" = "Custom")),
+      conditionalPanel(condition = "input.dateRange == 'Custom'",
+                       p('Select Date Range'),
+                       dateRangeInput("customDateRange",
+                                      label=NULL,
+                                      start = beginFY(today()-1),
+                                      end = today()-1,
+                                      min ='2014-06-01',
+                                      max = today()-1                                                              
+                       ))
 )
 
 body <- dashboardBody(
       
       tabItems(
             tabItem("dashboard",
-                    fluidRow(
-                          box(title = "Date Range", status="primary", solidHeader=TRUE,
-                              collapsible = TRUE, collapsed = TRUE, width=4,
-                              helpText("Select a date range to filter this page"),
-                              selectInput("dateRange", label = h5("datezzz"),
-                                          choices = c("Year to Date" = "FYTD", 
-                                                      "Last 7 days" = 7,
-                                                      "Last 30 Days" = 30,
-                                                      "Last 6 months" = 180,
-                                                      "Custom Date" = "Custom")),
-                              conditionalPanel(condition = "input.dateRange == 'Custom'",
-                                               p('Select Date Range'),
-                                               dateRangeInput("customDateRange",
-                                                              label=NULL,
-                                                              start = NULL,
-                                                              end = NULL,
-                                                              min ='2014-06-01',
-                                                              max = today()-1                                                              
-                                                              ))
-                              )),
-                    fluidRow(
+                      fluidRow(
                           column(width=6,
                                  h1("Commerce"),
                                  selectInput("commerceSite", "Business Unit",
@@ -176,38 +173,41 @@ body <- dashboardBody(
 
 server <- function(input, output, session) {
       reactiveFileReader(10000, session, "./data/enterprise.Rda", load)
+      dataList <- list(t_commerce=t_commerce, t_content=t_content, t_experienceType=t_experienceType)
+
+      dates <- reactive({
+            if (input$dateRange != "Custom") getDates(input$dateRange)
+            else getDates(input$customDateRange)
+                })
       
-      dateRange <- reactive({
-            if (input$dateRange == "FYTD") return(NULL)
-            else if (is.numeric(input$dateRange)) return(input$dateRange)
-            else if (input$dateRange == "Custom")
-                  input$customDateRange
-      })
+            
+      output$dateTest <- renderPrint({dates()})
+      output$dateTest2 <- renderPrint({class(dates())})
       
-      output$dateTest <- renderPrint({input$dateRange})
-      output$dateTest2 <- renderPrint({input$customDateRange})
-      
-      
-      
+      #expType <- data()$t_experienceType
       commerceDash <- reactive({
             if (input$commerceSite == "Commerce") {
-                  FYTD(t_experienceType, "Commerce", end.date=today()-1)
+                  df <- dateFilter(t_experienceType, dates())
+                  FYTD(df, "Commerce", end.date=today()-1)
             } else {
-                  FYTD(t_commerce, input$commerceSite, end.date=today()-1)
+                  df <- dateFilter(t_commerce, dates())
+                  FYTD(df, input$commerceSite, end.date=today()-1)
             }
       })
       
       contentDash <- reactive({
             if (input$contentSite == "Content") {
-                  FYTD(t_experienceType, input$contentSite, end.date=today()-1)
+                  df <- dateFilter(t_experienceType, dates())
+                  FYTD(df, input$contentSite, end.date=today()-1)
             } else {
-                  FYTD(t_content, input$contentSite, end.date=today()-1)
+                  df <- dateFilter(t_content, dates())
+                  FYTD(df, input$contentSite, end.date=today()-1)
             }
       })
       
       output$daterange <- renderText({
-            from <- t_commerce$datetime[1]
-            to <- t_commerce$datetime[length(t_commerce$datetime)]
+            from <- dates()[1]
+            to <- dates()[2]
             a <- paste(month(from, label = TRUE, abbr = FALSE), day(from))
             b <- paste(month(to, label = TRUE, abbr = FALSE), day(to))
             paste("Date Range: ", a, "through", b)

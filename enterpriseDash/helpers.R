@@ -36,11 +36,11 @@ f2si2<-function (number,rounding=F, digits=0)
 }
 
 # fiscal year label
-end.date <- Sys.Date()
-current.year <- c(beginFY(end.date), end.date)
-last.year <- c(beginFY(end.date-365), current.year[1]-1)
 
 FY <- function(date){
+      end.date <- Sys.Date()
+      current.year <- c(beginFY(end.date), end.date)
+      last.year <- c(beginFY(end.date-365), current.year[1]-1)
       if (between(date, current.year[1], current.year[2])){
             return(factor(paste0("FY", as.character(year(current.year[1])+1))))
       } else if (between(date, last.year[1], last.year[2])) {

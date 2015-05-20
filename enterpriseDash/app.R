@@ -34,6 +34,26 @@ body <- dashboardBody(
       tabItems(
             tabItem("dashboard",
                     fluidRow(
+                          box(title = "Date Range", status="primary", solidHeader=TRUE,
+                              collapsible = TRUE, collapsed = TRUE, width=4,
+                              helpText("Select a date range to filter this page"),
+                              selectInput("dateRange", label = h5("datezzz"),
+                                          choices = c("Year to Date" = "FYTD", 
+                                                      "Last 7 days" = 7,
+                                                      "Last 30 Days" = 30,
+                                                      "Last 6 months" = 180,
+                                                      "Custom Date" = "Custom")),
+                              conditionalPanel(condition = "input.dateRange == 'Custom'",
+                                               p('Select Date Range'),
+                                               dateRangeInput("customDateRange",
+                                                              label=NULL,
+                                                              start = NULL,
+                                                              end = NULL,
+                                                              min ='2014-06-01',
+                                                              max = today()-1                                                              
+                                                              ))
+                              )),
+                    fluidRow(
                           column(width=6,
                                  h1("Commerce"),
                                  selectInput("commerceSite", "Business Unit",
@@ -144,7 +164,8 @@ body <- dashboardBody(
             ),
             
             tabItem("subitem2",
-                    "content"
+                    verbatimTextOutput("dateTest"),
+                    verbatimTextOutput("dateTest2")
                     
             )
       )
@@ -155,6 +176,18 @@ body <- dashboardBody(
 
 server <- function(input, output, session) {
       reactiveFileReader(10000, session, "./data/enterprise.Rda", load)
+      
+      dateRange <- reactive({
+            if (input$dateRange == "FYTD") return(NULL)
+            else if (is.numeric(input$dateRange)) return(input$dateRange)
+            else if (input$dateRange == "Custom")
+                  input$customDateRange
+      })
+      
+      output$dateTest <- renderPrint({input$dateRange})
+      output$dateTest2 <- renderPrint({input$customDateRange})
+      
+      
       
       commerceDash <- reactive({
             if (input$commerceSite == "Commerce") {

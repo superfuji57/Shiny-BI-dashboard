@@ -92,23 +92,22 @@ body <- dashboardBody(
                                 dataTableOutput("fytdCommerce"),
                                 h4("Content Site Totals"),
                                 dataTableOutput("fytdContent")
-                                
                           )
                     )
             ),
             
             tabItem("comTab",
                     fluidRow(
-                          box(title = "Select Commerce Business Unit", background = "red",
+                          box(title = "Toggle Options", width = 3,
+                              solidHeader = TRUE, collapsible = TRUE, status = "info",
+                              
                               selectInput("CommerceBU", "Business Unit",
                                           choices = unique(t_commerce$name),
-                                          selected = "SSO")
-                          ),
-                          box(title = "Select Date Granularity", background = "blue",
+                                          selected = "SSO"),
                               selectInput("dateGran", "Date Granularity",
                                           choices = c("Day", "Week", "Month"),
-                                          selected = "Week")
-                              
+                                          selected = "Week"),
+                              checkboxInput("CommerceSync", label="Sync Charts", value = TRUE)
                           )
                     ),
                     column(12,
@@ -121,7 +120,6 @@ body <- dashboardBody(
                                  column(6,
                                         box(status = "primary", width = 12, dygraphOutput("comOrders", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("comRevenue", height = 250))
-                                        
                                  )
                            )
                     )
@@ -327,10 +325,14 @@ server <- function(input, output, session) {
       }
       
       #### Commerce dygraphs
+      comSync <- reactive({
+            ifelse(input$CommerceSync == TRUE, "commerce", "")
+      })
+      
       output$comVisits <- renderDygraph({
             ts <- xts(commerceData()$visits, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Visits") %>%
+            dygraph(ts, main = "Visits", group = comSync()) %>%
                   dySeries("V1", label = "Visits")
       })
       
@@ -338,21 +340,21 @@ server <- function(input, output, session) {
       output$comPageviews <- renderDygraph({
             ts <- xts(commerceData()$pageviews, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Page Views") %>%
+            dygraph(ts, main = "Page Views", group = comSync()) %>%
                   dySeries("V1", label = "Page Views")
       })
       
       output$comOrders <- renderDygraph({
             ts <- xts(commerceData()$orders, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Orders") %>%
+            dygraph(ts, main = "Orders", group = comSync()) %>%
                   dySeries("V1", label = "Orders")
       })
       
       output$comRevenue <- renderDygraph({
             ts <- xts(commerceData()$revenue, order.by=commerceData()$datetime)
             ts <- tsGran(ts, input$dateGran)
-            dygraph(ts, main = "Revenue") %>%
+            dygraph(ts, main = "Revenue", group = comSync()) %>%
                   dySeries("V1", label = "Revenue")
       })
       

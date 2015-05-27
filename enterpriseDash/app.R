@@ -29,7 +29,7 @@ sidebar <- dashboardSidebar(
                      menuSubItem("Sub-item 2", tabName = "subitem2")
             )
       ),
-      selectInput("dateRange", label = h5("Date Range"),
+      selectInput("dateRange", label = h5("Dashboard Date Range"),
                   choices = c("Fiscal Year-to-Date" = "FYTD", 
                               "Last 7 days" = 7,
                               "Last 30 Days" = 30,
@@ -97,56 +97,57 @@ body <- dashboardBody(
             ),
             
             tabItem("comTab",
-                    fluidRow(
-                          box(title = "Toggle Options", width = 3,
-                              solidHeader = TRUE, collapsible = TRUE, status = "info",
-                              
-                              selectInput("CommerceBU", "Business Unit",
-                                          choices = unique(t_commerce$name),
-                                          selected = "SSO"),
-                              selectInput("dateGran", "Date Granularity",
-                                          choices = c("Day", "Week", "Month"),
-                                          selected = "Week"),
-                              checkboxInput("CommerceSync", label="Sync Charts", value = TRUE)
-                          )
-                    ),
+                   
                     column(12,
                            fluidRow(
-                                 column(6,
+                                 column(2,
+                                          
+                                            selectInput("CommerceBU", "Business Unit",
+                                                        choices = unique(t_commerce$name),
+                                                        selected = "SSO"),
+                                            selectInput("dateGran", "Date Granularity",
+                                                        choices = c("Day", "Week", "Month"),
+                                                        selected = "Week"),
+                                            checkboxInput("CommerceSync", label="Sync Charts", value = TRUE),
+                                        p("Click and drag within charts to zoom in on a date range. Double click to reset.")
+                                        
+                                        ),
+                                 column(5,
                                         box(status = "primary", width = 12, dygraphOutput("comVisits", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("comPageviews", height = 250))
                                         
                                  ),
-                                 column(6,
+                                 column(5,
                                         box(status = "primary", width = 12, dygraphOutput("comOrders", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("comRevenue", height = 250))
                                  )
                            )
                     )
+                    
             ),
             tabItem("conTab",
-                    fluidRow(
-                          box(title = "Select Content Business Unit", background = "red",
-                              selectInput("ContentBU", "Business Unit",
-                                          choices = unique(t_content$name),
-                                          selected = "Parents")
-                          ),
-                          box(title = "Select Date Granularity", background = "blue",
-                              selectInput("dateGran2", "Date Granularity",
-                                          choices = c("Day", "Week", "Month"),
-                                          selected = "Week")
-                              
-                          )
-                    ),
                     
                     column(12,
                            fluidRow(
-                                 column(6,
+                                 column(2,
+                                        
+                                        selectInput("ContentBU", "Business Unit",
+                                                    choices = unique(t_content$name),
+                                                    selected = "Parents"),
+                                        selectInput("dateGran2", "Date Granularity",
+                                                    choices = c("Day", "Week", "Month"),
+                                                    selected = "Week"),
+                                        checkboxInput("ContentSync", label="Sync Charts", value = TRUE),
+                                        p("Click and drag within charts to zoom in on a date range. Double click to reset.")
+                                        
+                                 ),
+                                 
+                                 column(5,
                                         box(status = "primary", width = 12, dygraphOutput("conVisits", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("conPageviews", height = 250))
                                         
                                  ),
-                                 column(6,
+                                 column(5,
                                         box(status = "primary", width = 12, dygraphOutput("conTime", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("conPVV", height = 250))
                                         
@@ -359,10 +360,14 @@ server <- function(input, output, session) {
       })
       
       #### Content dygraphs
+      #####################
+      conSync <- reactive({
+            ifelse(input$ContentSync == TRUE, "content", "")
+      })
       output$conVisits <- renderDygraph({
             ts <- xts(contentData()$visits, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Visits") %>%
+            dygraph(ts, main = "Visits", group = conSync()) %>%
                   dySeries("V1", label = "Visits")
       })
       
@@ -370,21 +375,21 @@ server <- function(input, output, session) {
       output$conPageviews <- renderDygraph({
             ts <- xts(contentData()$pageviews, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Page Views") %>%
+            dygraph(ts, main = "Page Views", group = conSync()) %>%
                   dySeries("V1", label = "Page Views")
       })
       
       output$conTime <- renderDygraph({
             ts <- xts(contentData()$totaltimespent/60, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Total Time Spent") %>%
+            dygraph(ts, main = "Total Time Spent", group = conSync()) %>%
                   dySeries("V1", label = "Minutes")
       })
       
       output$conPVV <- renderDygraph({
             ts <- xts(contentData()$pageviews / contentData()$visits, order.by=contentData()$datetime)
             ts <- tsGran(ts, input$dateGran2)
-            dygraph(ts, main = "Page Views per Visit") %>%
+            dygraph(ts, main = "Page Views per Visit", group = conSync()) %>%
                   dySeries("V1", label = "PVs/Visit")
       })
       

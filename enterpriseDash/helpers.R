@@ -54,7 +54,13 @@ yoyR <- function(x){
 }
 
 yoyR2 <- function(x) {
-      df <- arrange(x, desc(FY))
+      if ("Current" %in% x$FY){
+            df <- arrange(x, FY)
+      } else {
+            df <- filter(x, FY != "Year NA") %>% 
+                  arrange(desc(FY))      
+      }
+      
       df <- df[,sapply(df, is.numeric)]
       df <- data.frame(cbind(apply(df, 2, yoyR)))
       names(df) <- "YOY"

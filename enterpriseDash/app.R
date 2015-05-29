@@ -42,7 +42,7 @@ sidebar <- dashboardSidebar(
                                       start = beginFY(today()-1),
                                       end = today()-1,
                                       min ='2014-06-01',
-                                      max = today()-1                                                              
+                                      max = max(t_content$datetime)                                                              
                        ))
 )
 
@@ -108,7 +108,9 @@ body <- dashboardBody(
                                             selectInput("dateGran", "Date Granularity",
                                                         choices = c("Day", "Week", "Month"),
                                                         selected = "Week"),
-                                            checkboxInput("CommerceSync", label="Sync Charts", value = TRUE),
+                                            selectInput("CommerceSync", label="Sync Charts", 
+                                                        choices = c(TRUE,FALSE),
+                                                        selected = TRUE),
                                         p("Click and drag within charts to zoom in on a date range. Double click to reset.")
                                         
                                         ),
@@ -179,28 +181,26 @@ server <- function(input, output, session) {
             else getDates(input$customDateRange)
                 })
       
-            
-      output$dateTest <- renderPrint({dates()})
-      output$dateTest2 <- renderPrint({class(dates())})
+      output$endDate <- renderText({max(dates())})
       
       #expType <- data()$t_experienceType
       commerceDash <- reactive({
             if (input$commerceSite == "Commerce") {
                   df <- dateFilter(t_experienceType, dates())
-                  FYTD(df, "Commerce", end.date=today()-1)
+                  FYTD(df, "Commerce", end.date=max(dates()$datetime))
             } else {
                   df <- dateFilter(t_commerce, dates())
-                  FYTD(df, input$commerceSite, end.date=today()-1)
+                  FYTD(df, input$commerceSite, end.date=max(dates()$datetime))
             }
       })
       
       contentDash <- reactive({
             if (input$contentSite == "Content") {
                   df <- dateFilter(t_experienceType, dates())
-                  FYTD(df, input$contentSite, end.date=today()-1)
+                  FYTD(df, input$contentSite, end.date=max(dates()$datetime))
             } else {
                   df <- dateFilter(t_content, dates())
-                  FYTD(df, input$contentSite, end.date=today()-1)
+                  FYTD(df, input$contentSite, end.date=max(dates()$datetime))
             }
       })
       
@@ -302,8 +302,8 @@ server <- function(input, output, session) {
                                                   searching = FALSE,
                                                   info = FALSE
                                             ))
-      #### NEXT TAB, trended engagement
-      #### dygraphs
+#### NEXT TAB, trended engagement
+#### dygraphs
       
       commerceData <- reactive({
             businessUnit <- input$CommerceBU

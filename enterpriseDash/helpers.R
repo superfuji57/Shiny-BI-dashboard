@@ -74,9 +74,18 @@ prettyR <- function(df){
 }
 
 # FYTD dataframe
-FYTD <- function(df, experience, end.date = today()-1, ...){
-      current.year <- c(beginFY(end.date), end.date)
-      last.year <- c(beginFY(end.date-365), end.date-365)
+FYTD <- function(df, experience, ...){
+      end.date <- max(df$datetime)
+      if (!is.null(df$Year)){
+            begin <- min(df$datetime[df$Year == "Current"])
+            current.year <- c(begin, end.date)
+            last.year <- c(begin-365, end.date-365)
+            df$FY <- df$Year
+      } else {
+            current.year <- c(beginFY(end.date), end.date)
+            last.year <- c(beginFY(end.date-365), end.date-365)
+            
+      }
       content.sites <- c("Content", "TeacherContent", "Parents", "Kids")
       commerce.sites <- c("Commerce", "TSO CQS", "SSO", "BookFairsExperience", "Classroom Magazines",
                           "Printables MiniBooks", "Teacher Express", "BookClubsExperience")
@@ -112,13 +121,14 @@ FYTD <- function(df, experience, end.date = today()-1, ...){
 }
 
 ## Filter with custom date range input
-getDates <- function(inputDate){
+getDates <- function(inputDate, today=NULL){
+      if (is.null(today)) {today <- today()-1}
       if (length(inputDate) == 2) {
             dateRange <- inputDate
       } else if (inputDate == "FYTD") {
-            dateRange <- c(beginFY(today()-1), today()-1)
+            dateRange <- c(beginFY(today), today)
       } else if (as.numeric(inputDate) > 0 & !is.na(as.numeric(inputDate))) {
-            dateRange <- c(today()- 1 - as.numeric(inputDate), today()-1)
+            dateRange <- c(today - as.numeric(inputDate), today)
       }
       as.Date(dateRange)
 }
@@ -128,5 +138,10 @@ dateFilter <- function(df, inputDate){
       py <- c(cy[1]-365, cy[2]-365)
       df <- dplyr::filter(df, between(datetime, cy[1], cy[2]) |
                                 between(datetime, py[1], py[2]))
+      if (length(unique(df$FY)) > 2){
+            df$Year[between(df$datetime, cy[1], cy[2])] <- "Current"
+            df$Year[between(df$datetime, py[1], py[2])] <- "Previous"
+            df$FY <- df$Year
+      }
       df
 }

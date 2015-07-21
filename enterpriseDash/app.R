@@ -191,7 +191,7 @@ server <- function(input, output, session) {
                   df <- dateFilter(t_commerce, dates())
                   FYTD(df, input$commerceSite, end.date=max(dates()$datetime))
             }
-      })
+      }) 
       
       contentDash <- reactive({
             if (input$contentSite == "Content") {
@@ -389,10 +389,15 @@ server <- function(input, output, session) {
                    ", and the interval is ", input$interval, ".")
       })
       
-      # LAST TOUCH CHANNEL
+      ### LAST TOUCH CHANNEL
       output$ltcLineChart <- renderChart({
-            #ltc.data <- subset(ltc.commerce, Site == "SSO")
-            linePlot <- nPlot(visits ~ datetime, group = 'Channel', data = subset(ltc.commerce, Site == input$ltcSite), 
+            chartDataCommerce <- ltc.commerce %>%
+                  filter(Site == input$ltcSite) %>% 
+                  mutate(weekStart = floor_date(datetime, "week")) %>% 
+                  group_by(weekStart, Channel) %>% 
+                  summarize(visits = sum(visits))
+            
+            linePlot <- nPlot(visits ~ weekStart, group = 'Channel', data = chartDataCommerce, 
                               type = "lineWithFocusChart", dom = 'ltcLineChart', width = 800)
             linePlot$xAxis( tickFormat="#!function(d) {return d3.time.format('%b %Y')(new Date( d * 86400000 ));}!#" )
             return(linePlot)

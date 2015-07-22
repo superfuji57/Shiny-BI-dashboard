@@ -25,11 +25,14 @@ sidebar <- dashboardSidebar(
                      menuSubItem("Commerce", tabName = "comTab"),
                      menuSubItem("Content", tabName = "conTab")
             ),
-            menuItem("Marketing Channels", tabName = "ltc"
+            menuItem("Marketing Channels", tabName = "ltc",
+                     menuSubItem("Commerce", "ltcCommerce"),
+                     menuSubItem("Content", "ltc.content")
             )
       ),
       selectInput("dateRange", label = h5("Dashboard Date Range"),
-                  choices = c("Fiscal Year-to-Date" = "FYTD", 
+                  choices = c("Fiscal Year-to-Date" = "FYTD",
+                              "Month-to-Date" = "MTD",
                               "Last 7 days" = 7,
                               "Last 30 Days" = 30,
                               "Last 6 months" = 180,
@@ -155,14 +158,21 @@ body <- dashboardBody(
                            )
                     )
             ),
-            tabItem("ltc",
-                    selectInput(inputId = "ltcSite",
+            
+            ## Marketing Channels Tabs
+            tabItem("ltcCommerce",
+                    selectInput(inputId = "ltcCommerceSite",
                                 label = "Choose Site",
                                 choices = unique(ltc.commerce$Site),
                                 selected = unique(ltc.commerce$Site)[1]
                     ),
                     
-                    showOutput("ltcLineChart", "nvd3")
+                    checkboxInput("ltcCommerceDates",
+                                  label = "Sync dates with dashboard",
+                                  value = FALSE
+                    ),
+                    
+                    showOutput("ltcCommerceLineChart", "nvd3")
                     
             )
       )
@@ -390,15 +400,21 @@ server <- function(input, output, session) {
       })
       
       ### LAST TOUCH CHANNEL
-      output$ltcLineChart <- renderChart({
-            chartDataCommerce <- ltc.commerce %>%
-                  filter(Site == input$ltcSite) %>% 
+      chartDataCommerce <- reactive({
+            if (input$ltcCommerceDates == TRUE){
+                  ltcCommerceDates <- dates()
+            } else { 
+                  ltcCommerceDates <- NULL}
+            dateFilter(ltc.commerce, ltcCommerceDates) %>%
+                  filter(Site == input$ltcCommerceSite) %>% 
                   mutate(weekStart = floor_date(datetime, "week")) %>% 
                   group_by(weekStart, Channel) %>% 
                   summarize(visits = sum(visits))
-            
-            linePlot <- nPlot(visits ~ weekStart, group = 'Channel', data = chartDataCommerce, 
-                              type = "lineWithFocusChart", dom = 'ltcLineChart', width = 800)
+      })
+      
+      output$ltcCommerceLineChart <- renderChart({
+            linePlot <- nPlot(visits ~ weekStart, group = 'Channel', data = chartDataCommerce(), 
+                              type = "lineWithFocusChart", dom = 'ltcCommerceLineChart', width = 800)
             linePlot$xAxis( tickFormat="#!function(d) {return d3.time.format('%b %Y')(new Date( d * 86400000 ));}!#" )
             return(linePlot)
       })

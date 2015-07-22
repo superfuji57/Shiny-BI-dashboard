@@ -133,21 +133,26 @@ getDates <- function(inputDate, today=NULL){
             dateRange <- inputDate
       } else if (inputDate == "FYTD") {
             dateRange <- c(beginFY(today), today)
+      } else if (inputDate == "MTD") {
+            dateRange <- c(floor_date(today, "month"), today)
       } else if (as.numeric(inputDate) > 0 & !is.na(as.numeric(inputDate))) {
             dateRange <- c(today - as.numeric(inputDate), today)
       }
       as.Date(dateRange)
 }
 
-dateFilter <- function(df, inputDate){
-      cy <- inputDate
-      py <- c(cy[1]-365, cy[2]-365)
-      df <- dplyr::filter(df, between(datetime, cy[1], cy[2]) |
-                                between(datetime, py[1], py[2]))
-      if (length(unique(df$FY)) > 2){
-            df$Year[between(df$datetime, cy[1], cy[2])] <- "Current"
-            df$Year[between(df$datetime, py[1], py[2])] <- "Previous"
-            df$FY <- df$Year
+dateFilter <- function(df, inputDate=NULL){
+      if (is.null(inputDate)) df
+      else {
+            cy <- inputDate
+            py <- c(cy[1]-365, cy[2]-365)
+            df <- dplyr::filter(df, between(datetime, cy[1], cy[2]) |
+                                      between(datetime, py[1], py[2]))
+            if (length(unique(df$FY)) > 2){
+                  df$Year[between(df$datetime, cy[1], cy[2])] <- "Current"
+                  df$Year[between(df$datetime, py[1], py[2])] <- "Previous"
+                  df$FY <- df$Year
+            }
+            df
       }
-      df
 }

@@ -35,3 +35,7 @@ enterpriseDash/munger.R
 enterpriseDash/ftpDownload.R
 enterpriseDash/data/enterprise.Rda
 packrat/lib*/
+data/ds1.csv
+data/ds2.csv
+final.Rmd
+final.pdf

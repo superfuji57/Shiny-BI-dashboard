@@ -161,4 +161,36 @@ dateFilter <- function(df, inputDate=NULL, onlyCY = FALSE){
             df
       }
 }
-### NVD3 Line Chart
+### Delta charts functions
+signR <- function(x){
+      if (sum(x < 0) == length(x)) return("All Neg")
+      else if (sum(x > 0) == length(x)) return("All Pos")
+      else return(FALSE)
+}
+
+yLims <- function(x) {
+      if (signR(x) == "All Neg"){
+            ylim(min(x) - .1, 0)
+      } else if (signR(x) == "All Pos") {
+            ylim(0, max(x) + .1)
+      } else {
+            ylim(min(x) - .1, max(x) + .1)
+      }
+}
+
+deltaChart <- function(fytdData){
+      data <- yoyR2(fytdData)
+      data %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
+            geom_bar(stat="identity", position="identity") +
+            geom_text(aes(label = paste0(round(YOY * 100, 1), "%"),
+                          hjust = ifelse(YOY >= 0, 0, 1))) +
+            coord_flip() +
+            labs(x="", y="") +
+            yLims(data$YOY) +
+            scale_color_fivethirtyeight() + 
+            theme_fivethirtyeight() + 
+            scale_fill_manual(values = c("green" = "chartreuse3", "red" = "firebrick")) +
+            theme(legend.position = "none",
+                  plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
+                  axis.text.y=element_text(size = 12, colour="darkblue"))
+}

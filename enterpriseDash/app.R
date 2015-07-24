@@ -69,7 +69,6 @@ body <- dashboardBody(
                     ),
                     # YoY
                     
-                    
                     fluidRow(
                           column(width=6,
                                  
@@ -227,16 +226,14 @@ body <- dashboardBody(
 
 server <- function(input, output, session) {
       reactiveFileReader(10000, session, "./data/enterprise.Rda", load)
-      dataList <- list(t_commerce=t_commerce, t_content=t_content, t_experienceType=t_experienceType)
       
+      # Dates from selected input
       dates <- reactive({
             if (input$dateRange != "Custom") getDates(input$dateRange)
             else getDates(input$customDateRange)
       })
       
-      output$endDate <- renderText({max(dates())})
-      
-      #expType <- data()$t_experienceType
+      # FYTD totals for current and previous year
       commerceDash <- reactive({
             if (input$commerceSite == "Commerce") {
                   df <- dateFilter(t_experienceType, dates())
@@ -246,7 +243,6 @@ server <- function(input, output, session) {
                   FYTD(df, input$commerceSite, end.date=max(dates()$datetime))
             }
       }) 
-      
       contentDash <- reactive({
             if (input$contentSite == "Content") {
                   df <- dateFilter(t_experienceType, dates())
@@ -257,6 +253,7 @@ server <- function(input, output, session) {
             }
       })
       
+      # Text to print date range used
       output$daterange <- renderText({
             from <- dates()[1]
             to <- dates()[2]
@@ -265,6 +262,7 @@ server <- function(input, output, session) {
             paste("Date Range: ", a, "through", b)
       })
       
+      # Main info box on commerce/left side with conversion rate
       output$conversionRate <- renderInfoBox({
             conversion <- percent(commerceDash()$Conversion[1])
             infoBox("Conversion Rate",
@@ -275,7 +273,7 @@ server <- function(input, output, session) {
             )
       })
       
-      
+      # Main info box on content/right side with engagement rate
       output$engagement <- renderInfoBox({
             engagement <- percent(contentDash()$Engagement[1])
             infoBox("Engagement",
@@ -305,39 +303,12 @@ server <- function(input, output, session) {
       
       # Conversion Bar Plot 
       output$conversion <- renderPlot({
-            yoyR2(commerceDash()) %>% ggplot(aes(Metrics, YOY, label=Metrics, fill= color)) +
-                  geom_bar(stat = "identity", position="identity") + 
-                  geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
-                                hjust = ifelse(YOY >= 0, 0, 1))) +
-                  coord_flip() +
-                  labs(x="", y="") +
-                  ylim(min(yoyR2(commerceDash())$YOY-.1), max(yoyR2(commerceDash())$YOY)+.1) +
-                  scale_color_fivethirtyeight() + 
-                  theme_fivethirtyeight() + 
-                  scale_fill_manual(values = c("green" = "chartreuse3", "red" = "firebrick")) +
-                  theme(legend.position = "none",
-                        plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
-                        axis.text.y=element_text(size = 12, colour="darkblue"))
-            
-            
+            deltaChart(commerceDash())
       })
       
       # Visitors  Bar Plot 
       output$visitors <- renderPlot({
-            yoyR2(contentDash()) %>% ggplot(aes(Metrics, YOY, label=Metrics, fill = color)) +
-                  geom_bar(stat = "identity", position="identity") + 
-                  geom_text(aes(label = paste0( round(YOY * 100,1), "%"),
-                                hjust = ifelse(YOY >= 0, 0, 1))) +
-                  coord_flip() +
-                  labs(x="", y="") +
-                  ylim(min(yoyR2(contentDash())$YOY)-.1, max(yoyR2(contentDash())$YOY)+.1) +
-                  scale_color_fivethirtyeight() + 
-                  theme_fivethirtyeight() + 
-                  scale_fill_manual(values = c("green" = "chartreuse3", "red" = "firebrick")) +
-                  theme(legend.position = "none",
-                        plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
-                        axis.text.y=element_text(size = 12, colour="darkblue"))
-            
+            deltaChart(contentDash())
       })
       
       ## Raw data tables on first tab

@@ -363,7 +363,7 @@ server <- function(input, output, session) {
             } else {
                   comTabDates <- NULL
             }
-            dateFilter(t_commerce, comTabDates) %>%
+            dateFilter(t_commerce, comTabDates, onlyCY=TRUE) %>%
                   filter(name == input$CommerceBU)
       })
       
@@ -373,7 +373,7 @@ server <- function(input, output, session) {
             } else {
                   conTabDates <- NULL
             }
-            dateFilter(t_content, conTabDates) %>%
+            dateFilter(t_content, conTabDates, onlyCY=TRUE) %>%
                   filter(name == input$ContentBU)            
       })
       
@@ -459,7 +459,7 @@ server <- function(input, output, session) {
                   ltcCommerceDates <- dates()
             } else { 
                   ltcCommerceDates <- NULL}
-            dateFilter(ltc.commerce, ltcCommerceDates) %>%
+            dateFilter(ltc.commerce, ltcCommerceDates, onlyCY=TRUE) %>%
                   filter(Site == input$ltcCommerceSite) %>% 
                   mutate(weekStart = floor_date(datetime, "week")) %>% 
                   group_by(weekStart, Channel) %>% 
@@ -469,7 +469,7 @@ server <- function(input, output, session) {
       output$ltcCommerceLineChart <- renderChart({
             linePlot <- nPlot(visits ~ weekStart, group = 'Channel', data = chartDataCommerce(), 
                               type = "lineWithFocusChart", dom = 'ltcCommerceLineChart', width = 800)
-            linePlot$xAxis( tickFormat="#!function(d) {return d3.time.format('%b %Y')(new Date( d * 86400000 ));}!#" )
+            linePlot$xAxis( tickFormat="#!function(d) {return d3.time.format('%x')(new Date( d * 86400000 ));}!#" )
             linePlot$yAxis(tickFormat = "#! function(d) {return d3.format(',0f')(d)} !#")
             #linePlot$y2Axis(tickFormat = "#! function(d) {return d3.format(',0f')(d)} !#")
             dat <- data.frame(x = numeric(0), y = numeric(0))

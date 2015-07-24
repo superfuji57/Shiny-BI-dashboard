@@ -83,7 +83,7 @@ prettyR <- function(df){
 FYTD <- function(df, experience, ...){
       end.date <- max(df$datetime)
       if (!is.null(df$Year)){
-            begin <- min(df$datetime[df$Year == "Current"])
+            begin <- min(df$datetime[df$Year == "This Year"])
             current.year <- c(begin, end.date)
             last.year <- c(begin-365, end.date-365)
             df$FY <- df$Year
@@ -141,20 +141,24 @@ getDates <- function(inputDate, today=NULL){
       as.Date(dateRange)
 }
 
-dateFilter <- function(df, inputDate=NULL){
+
+dateFilter <- function(df, inputDate=NULL, onlyCY = FALSE){
       if (is.null(inputDate)) df
       else {
             cy <- inputDate
             py <- c(cy[1]-365, cy[2]-365)
-            df <- dplyr::filter(df, between(datetime, cy[1], cy[2]) |
-                                      between(datetime, py[1], py[2]))
-            if (length(unique(df$FY)) > 2){
-                  df$Year[between(df$datetime, cy[1], cy[2])] <- "Current"
-                  df$Year[between(df$datetime, py[1], py[2])] <- "Previous"
-                  df$FY <- df$Year
+            if (onlyCY == FALSE) {
+                  df <- dplyr::filter(df, between(datetime, cy[1], cy[2]) |
+                                            between(datetime, py[1], py[2]))
+                  if (length(unique(df$FY)) > 2){
+                        df$Year[between(df$datetime, cy[1], cy[2])] <- "This Year"
+                        df$Year[between(df$datetime, py[1], py[2])] <- "Previous Year"
+                        df$FY <- df$Year
+                  }      
+            } else {
+                  df <- dplyr::filter(df, between(datetime, cy[1], cy[2]))
             }
             df
       }
 }
-
 ### NVD3 Line Chart

@@ -59,6 +59,7 @@ body <- dashboardBody(
                                  selectInput("commerceSite", "Business Unit",
                                              choices = c("Overall Commerce" = "Commerce", unique(t_commerce$name)),
                                              selected = "Commerce"),
+                                 
                                  infoBoxOutput("conversionRate", width=12)),
                           column(width=6,
                                  h1("Content"),
@@ -188,6 +189,7 @@ body <- dashboardBody(
             ),
             
             tabItem("ltcCommerce",
+                    
                     selectInput(inputId = "ltcCommerceSite",
                                 label = "Choose Site",
                                 choices = unique(ltc.commerce$Site),
@@ -425,6 +427,18 @@ server <- function(input, output, session) {
       })
       
       ### LAST TOUCH CHANNEL
+      chartDataExperienceType <- reactive({
+            if (input$ltcExperienceTypeDates == TRUE){
+                  ltcExperienceTypeDates <- dates()
+            } else { 
+                  ltcExperienceTypeDates <- NULL}
+            dateFilter(ltc.experienceType, ltcExperienceTypeDates, onlyCY=TRUE) %>%
+                  filter(Site == input$ltcExperienceType) %>% 
+                  mutate(weekStart = floor_date(datetime, "week")) %>% 
+                  group_by(weekStart, Channel) %>% 
+                  summarize(visits = sum(visits))
+      })
+      
       chartDataCommerce <- reactive({
             if (input$ltcCommerceDates == TRUE){
                   ltcCommerceDates <- dates()
@@ -437,38 +451,31 @@ server <- function(input, output, session) {
                   summarize(visits = sum(visits))
       })
       
+      chartDataContent <- reactive({
+            if (input$ltcContentDates == TRUE){
+                  ltcContentDates <- dates()
+            } else { 
+                  ltcContentDates <- NULL}
+            dateFilter(ltc.content, ltcContentDates, onlyCY=TRUE) %>%
+                  filter(Site == input$ltcContentSite) %>% 
+                  mutate(weekStart = floor_date(datetime, "week")) %>% 
+                  group_by(weekStart, Channel) %>% 
+                  summarize(visits = sum(visits))
+      })
+      
+      output$ltcExperienceTypeLineChart <- renderChart({
+            d3Loading()
+            d3LineChart(chartDataExperienceType(), dom='ltcExperienceTypeLineChart')
+      })
+      
       output$ltcCommerceLineChart <- renderChart({
-            linePlot <- nPlot(visits ~ weekStart, group = 'Channel', data = chartDataCommerce(), 
-                              type = "lineWithFocusChart", dom = 'ltcCommerceLineChart', width = 800)
-            linePlot$xAxis( tickFormat="#!function(d) {return d3.time.format('%x')(new Date( d * 86400000 ));}!#" )
-            linePlot$yAxis(tickFormat = "#! function(d) {return d3.format(',0f')(d)} !#")
-            #linePlot$y2Axis(tickFormat = "#! function(d) {return d3.format(',0f')(d)} !#")
-            dat <- data.frame(x = numeric(0), y = numeric(0))
-            
-            # Create a Progress object
-            progress <- shiny::Progress$new()
-            # Make sure it closes when we exit this reactive, even if there's an error
-            on.exit(progress$close())
-            
-            progress$set(message = "Making plot", value = 0)
-            
-            # Number of times we'll go through the loop
-            n <- 10
-            
-            for (i in 1:n) {
-                  # Each time through the loop, add another row of data. This is
-                  # a stand-in for a long-running computation.
-                  dat <- rbind(dat, data.frame(x = rnorm(1), y = rnorm(1)))
-                  
-                  # Increment the progress bar, and update the detail text.
-                  progress$inc(1/n, detail = paste("Loading...", i))
-                  
-                  # Pause for 0.1 seconds to simulate a long computation.
-                  Sys.sleep(0.1)
-            }
-            
-            plot(dat$x, dat$y)
-            return(linePlot)
+            d3Loading()
+            d3LineChart(chartDataCommerce(), dom='ltcCommerceLineChart')
+      })
+      
+      output$ltcContentLineChart <- renderChart({
+            d3Loading()
+            d3LineChart(chartDataContent(), dom ='ltcContentLineChart')
       })
 }
 

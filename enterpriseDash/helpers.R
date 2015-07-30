@@ -194,3 +194,36 @@ deltaChart <- function(fytdData){
                   plot.title = element_text(size=20, lineheight=.8, vjust=1, family = "Garamond"),
                   axis.text.y=element_text(size = 12, colour="darkblue"))
 }
+
+d3LineChart <- function(df, dom) {
+      linePlot <- nPlot(visits ~ weekStart, group = 'Channel', data = df, 
+                        type = "lineWithFocusChart", dom = dom, width = 800)
+      linePlot$xAxis( tickFormat="#!function(d) {return d3.time.format('%x')(new Date( d * 86400000 ));}!#" )
+      linePlot$yAxis(tickFormat = "#! function(d) {return d3.format(',0f')(d)} !#")
+      
+      return(linePlot)
+}
+
+d3Loading <- function(...){
+      # Create a Progress object
+      progress <- shiny::Progress$new()
+      # Make sure it closes when we exit this reactive, even if there's an error
+      on.exit(progress$close())
+      
+      progress$set(message = "Making plot", value = 0)
+      
+      # Number of times we'll go through the loop
+      n <- 100
+      
+      for (i in 1:n) {
+            # Each time through the loop, add another row of data. This is
+            # a stand-in for a long-running computation.
+            
+            # Increment the progress bar, and update the detail text.
+            progress$inc(1/n, detail = paste("Loading...", i))
+            
+            # Pause for 0.1 seconds to simulate a long computation.
+            Sys.sleep(0.01)
+      }
+      
+}

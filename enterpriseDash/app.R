@@ -9,7 +9,6 @@ library(scales)
 library(rCharts)
 
 source("helpers.R")
-# source("dashData.R")
 load("./data/enterprise.Rda")
 
 header <- dashboardHeader(
@@ -25,19 +24,22 @@ sidebar <- dashboardSidebar(
                      menuSubItem("Commerce", tabName = "comTab"),
                      menuSubItem("Content", tabName = "conTab")
             ),
+            
             menuItem("Marketing Channels", tabName = "ltc",
                      menuSubItem("Key Experience", "ltcExperienceType"),
                      menuSubItem("Commerce", "ltcCommerce"),
                      menuSubItem("Content", "ltcContent")
-            )
-      ),
+            )),
+      
       selectInput("dateRange", label = h5("Dashboard Date Range"),
                   choices = c("Fiscal Year-to-Date" = "FYTD",
                               "Month-to-Date" = "MTD",
                               "Last 7 days" = 7,
                               "Last 30 Days" = 30,
                               "Last 6 months" = 180,
-                              "Custom Date Range" = "Custom")),
+                              "Custom Date Range" = "Custom")
+                  ),
+      
       conditionalPanel(condition = "input.dateRange == 'Custom'",
                        p('Select Date Range'),
                        dateRangeInput("customDateRange",
@@ -45,9 +47,9 @@ sidebar <- dashboardSidebar(
                                       start = beginFY(today()-1),
                                       end = today()-1,
                                       min ='2014-06-01',
-                                      max = today()-1                                                              
-                       ))
-)
+                                      max = today()-1)
+                       )
+      )
 
 body <- dashboardBody(
       
@@ -59,35 +61,28 @@ body <- dashboardBody(
                                  selectInput("commerceSite", "Business Unit",
                                              choices = c("Overall Commerce" = "Commerce", unique(t_commerce$name)),
                                              selected = "Commerce"),
-                                 
-                                 infoBoxOutput("conversionRate", width=12)),
+                                 infoBoxOutput("conversionRate", width=12)
+                                 ),
                           column(width=6,
                                  h1("Content"),
                                  selectInput("contentSite", "Business Unit",
                                              choices = c("Overall Content" = "Content", unique(t_content$name)),
                                              selected = "Content"),
-                                 infoBoxOutput("engagement", width=12))
-                    ),
-                    # YoY
-                    
+                                 infoBoxOutput("engagement", width=12)
+                                 )),
+                  # YoY Plots
                     fluidRow(
                           column(width=6,
-                                 
                                  box(
                                        title = "Commerce YOY Metrics Performance", width = NULL, solidHeader = TRUE, status = "danger",
                                        plotOutput("conversion")
-                                 ) 
-                          ),
-                          
+                                 )),
                           column(6,
-                                 
                                  box(
                                        title = "Content YOY Metrics Performance", width = NULL, solidHeader = TRUE, status = "danger",
                                        plotOutput("visitors")
-                                 ) 
-                          )
-                          
-                    ),
+                                 ))
+                          ),
                     fluidRow(
                           box(
                                 title = textOutput("daterange"), width = 12, solidHeader=TRUE, status="warning",
@@ -95,11 +90,8 @@ body <- dashboardBody(
                                 dataTableOutput("fytdCommerce"),
                                 h4("Content Site Totals"),
                                 dataTableOutput("fytdContent")
-                                
-                          )
-                    )
-            ),
-            
+                          ))
+                  ),
             tabItem("comTab",
                     fluidRow(
                           box(title = "Select Commerce Business Unit", background = "red",
@@ -111,9 +103,7 @@ body <- dashboardBody(
                               selectInput("dateGran", "Date Granularity",
                                           choices = c("Day", "Week", "Month"),
                                           selected = "Week")
-                              
-                          )
-                    ),
+                          )),
                     column(12,
                            checkboxInput("comTabSync",
                                          label = "Sync with dashboard date range (from left)",
@@ -124,16 +114,12 @@ body <- dashboardBody(
                                         
                                         box(status = "primary", width = 12, dygraphOutput("comVisits", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("comPageviews", height = 250))
-                                        
                                  ),
                                  column(6,
                                         box(status = "primary", width = 12, dygraphOutput("comOrders", height = 250)),
                                         box(status = "primary", width = 12, dygraphOutput("comRevenue", height = 250))
-                                        
-                                 )
-                           )
-                    )
-            ),
+                                 ))
+                           )),
             tabItem("conTab",
                     fluidRow(
                           box(title = "Select Content Business Unit", background = "red",
@@ -327,8 +313,8 @@ server <- function(input, output, session) {
                                                   searching = FALSE,
                                                   info = FALSE
                                             ))
-      #### NEXT TAB, trended engagement
-      #### dygraphs
+     #### NEXT TAB, trended engagement
+     #### dygraphs
       
       commerceData <- reactive({
             if (input$comTabSync == TRUE){
